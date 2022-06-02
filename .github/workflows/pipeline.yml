@@ -20,6 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
+          cache: 'npm'
           fetch-depth: 0
       - uses: actions/setup-node@v3
         with:
@@ -37,6 +38,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v3
         with:
+          cache: 'npm'
           node-version: 14
       - name: Install dependencies
         run: npm install --no-audit --no-fund # Cant use npm ci -> Heroku fails
@@ -56,6 +58,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v3
         with:
+          cache: 'npm'
           node-version: 14
       - name: Install dependencies
         run: npm install --no-audit --no-fund # Cant use npm ci -> Heroku fails
@@ -75,6 +78,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v3
         with:
+          cache: 'npm'
           node-version: 14
       - name: Install dependencies
         run: npm install --no-audit --no-fund # Cant use npm ci -> Heroku fails
