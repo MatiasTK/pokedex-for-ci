@@ -8,13 +8,16 @@ on:
     types: [opened,synchronize]
 
 jobs:
-  deploy:
+  avoid_reduncy:
     runs-on: ubuntu-latest
     steps:
       - name: Cancel previous redundant builds
         uses: styfle/cancel-workflow-action@0.9.1
         with:
           access_token: ${{ github.token }}
+  lint:
+    runs-on: ubuntu-latest
+    steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
@@ -25,16 +28,73 @@ jobs:
         run: npm install --no-audit --no-fund # Cant use npm ci -> Heroku fails
       - name: Lint
         run: npm run eslint
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 14
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund # Cant use npm ci -> Heroku fails
       - name: Build
         run: npm run build
+      - uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist
+
+  tests:
+    needs: [lint,build] # Para que no se ejecute en paralelo con los demas.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 14
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund # Cant use npm ci -> Heroku fails
+      - uses: actions/download-artifact@v3
+        with:
+          name: dist
       - name: Test
         run: npm test
+
+  e2e-test:
+    needs: [lint,build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 14
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund # Cant use npm ci -> Heroku fails
+      - uses: actions/download-artifact@v3
+        with:
+          name: dist
       - name: E2E tests
         uses: cypress-io/github-action@v4
         with:
           command: npm run test:e2e
           start: npm run start-test
           wait-on: http://localhost:5000
+
+
+  deploy:
+    needs: [e2e-test, tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Deploy to Heroku
         if: ${{github.event_name == 'push'}}
         uses: akhileshns/heroku-deploy@v3.12.12
